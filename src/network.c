@@ -182,7 +182,28 @@ network *make_network(int n)
     net->seen = calloc(1, sizeof(size_t));
     net->t    = calloc(1, sizeof(int));
     net->cost = calloc(1, sizeof(float));
+    printf("in make network, the batch=%d\n", net->batch);
     return net;
+}
+
+void forward_cut_network(network *netp, int from_id, int to_id)
+{
+    network net = *netp;
+    int i;
+    for(i = from_id; i <= to_id; ++i){
+        net.index = i;
+        layer l = net.layers[i];
+        if(l.delta){
+            fill_cpu(l.outputs * l.batch, 0, l.delta, 1);
+        }
+        l.forward(l, net);
+        net.input = l.output;
+        if(l.truth) {
+            net.truth = l.output;
+            printf("in truth: %d\n", i);
+        }
+    }
+    calc_network_cost(netp);
 }
 
 void forward_network(network *netp)
@@ -493,6 +514,29 @@ void top_predictions(network *net, int k, int *index)
     top_k(net->output, net->outputs, k, index);
 }
 
+float *network_cut_predict(network *net, float *input, int cut_id, int is_last)
+{
+    network orig = *net;
+    net->input = input;
+    float *out = net->output;
+
+    if(is_last > 0){
+        //last part
+        net->truth = 0;
+        net->train = 0;
+        net->delta = 0;
+        forward_cut_network(net, cut_id+1, net->n-1);
+    }else{
+        net->truth = 0;
+        net->train = 0;
+        net->delta = 0;
+        //first part
+        forward_cut_network(net, 0, cut_id);
+        out = net->layers[cut_id].output;
+    }
+    *net = orig;
+    return out;
+}
 
 float *network_predict(network *net, float *input)
 {

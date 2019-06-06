@@ -2,6 +2,49 @@
 
 static int coco_ids[] = {1,2,3,4,5,6,7,8,9,10,11,13,14,15,16,17,18,19,20,21,22,23,24,25,27,28,31,32,33,34,35,36,37,38,39,40,41,42,43,44,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,67,70,72,73,74,75,76,77,78,79,80,81,82,84,85,86,87,88,89,90};
 
+void write_metadata(float *out, char *filename, int length)
+{
+    FILE *file = fopen(filename, "w");
+
+    int count=0;
+    for(count=0; count<length-1; count++){
+        fprintf(file, "%f\n", out[count]);
+    }
+    fprintf(file, "%f", out[length-1]);
+
+    fclose(file);
+}
+
+float *read_metadata(network *net, int length)
+{
+    FILE *ofile = fopen("output_metadata", "r");
+//    FILE *dfile = fopen("delta_metadata", "r");
+//    FILE *tfile = fopen("train_metadata", "r");
+    char *line;
+    float *out = calloc(length, sizeof(float));
+//    float *delta = calloc(length, sizeof(float));
+    int count=0;
+    while((line=fgetl(ofile)) != 0){
+        strip(line);
+        out[count] = atof(line);
+        count++;
+    }
+//    count=0;
+//    while((line=fgetl(dfile)) != 0){
+//        strip(line);
+//        delta[count] = atof(line);
+//        count++;
+//    }
+//    net->delta = delta;
+//    line=fgetl(tfile);
+//    strip(line);
+//    net->train = atoi(line);   
+
+    fclose(ofile);
+//    fclose(dfile);
+//    fclose(tfile);
+    return out;
+}
 
 void train_detector(char *datacfg, char *cfgfile, char *weightfile, int *gpus, int ngpus, int clear)
 {
